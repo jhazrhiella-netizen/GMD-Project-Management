@@ -1,0 +1,35 @@
+body{font-family:Arial,Helvetica,sans-serif;background:#f4f6f8;margin:0}
+.login-page{display:flex;align-items:center;justify-content:center;height:100vh}
+.login-card{background:#fff;padding:24px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.08);width:320px}
+.login-card h1{margin:0 0 12px;font-size:20px}
+.login-card label{display:block;margin-top:8px;font-size:13px}
+.login-card input{width:100%;padding:8px;margin-top:6px;border:1px solid #ddd;border-radius:4px}
+.login-card button{margin-top:12px;width:100%;padding:10px;background:#0b5ed7;color:#fff;border:none;border-radius:6px}
+.error{background:#ffe6e6;color:#b30000;padding:8px;border-radius:4px;margin-bottom:8px}
+
+.app-header{background:#0b5ed7;color:#fff;padding:12px 16px}
+.app-container{display:flex;min-height:100vh}
+.app-sidebar{width:220px;background:#fff;border-right:1px solid #eee;padding:12px}
+.app-main{flex:1;padding:16px}
+.app-sidebar .signed-in{font-size:13px;color:#666;margin-top:12px}
+.nav-link{display:block;padding:8px 10px;color:#222;text-decoration:none;border-radius:4px;margin-bottom:6px}
+.nav-link:hover{background:#f0f4ff}
+
+.card{background:#fff;padding:16px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+/* Sidebar collapse behavior */
+body.sidebar-collapsed .app-sidebar{width:56px;overflow:hidden}
+body.sidebar-collapsed .nav-link{padding-left:6px;padding-right:6px;text-align:center}
+body.sidebar-collapsed .app-main{padding-left:20px}
+
+/* Responsive: collapse sidebar on small screens */
+@media (max-width: 800px){
+	.app-container{flex-direction:column}
+	.app-sidebar{width:100%;border-right:none;border-bottom:1px solid #eee}
+	body.sidebar-collapsed .app-sidebar{width:100%}
+}
+
+/* Header small button styles */
+#sidebarToggle{font-size:18px;padding:6px 8px}
+
+/* This will be the main style page of the whole project. It will include all the styles for the different pages in the system. The styles will be organized in a way that makes it easy to maintain and update. The styles will be divided into different sections, such as general styles, layout styles, and component styles. Each section will have its own set of styles that are specific to that section. This will help to keep the styles organized and easy to navigate. The general styles will include styles that are used throughout the whole system, such as font styles, colors, and spacing. The layout styles will include styles that are specific to the layout of the pages, such as the header, sidebar, and main content area. The component styles will include styles that are specific to the different components used in the system, such as buttons, forms, and tables. The styles will be written in a way that is easy to understand and maintain, with clear comments and organization. This will help to ensure that the styles are consistent and easy to update as needed.
+

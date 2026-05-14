@@ -1,0 +1,26 @@
+This will be a web system design to manage a project-based company. It is a metal fabrication company that specializes in metal tanks that holds water, chemicals, or fuels. The shape of the tanks are majorly cylindrical tanks. This web system will use supabase as its database. This system must be a complete working web system with KPI integrations to actually manage the projects of the Company.
+
+Name of the Company: GMD South Phils Metal Fabrication 
+
+Main Folder: this folder is the main folder that contains all the other folders and the index.php and the supabase-connection.php
+
+src Folder: Main-subfolder that will have all the other regarding assets, pages, modules, and other folders and files that will help this web-system to have better functionalities.
+
+css folder: stores all the styles and css designs for the pages of this project 
+
+js folder: stores all the javascript files that handles scripts for better functionalities, designs, or animation 
+
+admin-pages folder: this will store all the admin pages that the admin of the company will use. each pages will be stores in different php files for better management
+
+supplier-pages folder: stores all the pages related for the supplier side of the system 
+
+modules folder: stores all the folders that have their respective module. We wil divide functionalities into modules for easier edit and management when we have problem with a single module.
+
+admin-dashboard-modules: will store each and every module of the admin dashboard like graphs, tables, and other parts that will be shown in the dashboard in the admin side 
+
+admin-modules: stores all the modules that has to do with how the admin manages the web system 
+
+supplier-modules: modules that is connected to the supplier side.
+
+
+NOTE: Any additional folder must always be put here and be described as what to their use is.
