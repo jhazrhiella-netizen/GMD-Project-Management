@@ -6,14 +6,14 @@ if (is_logged_in()) {
 	$user = get_current_user() ?: [];
 	$role = $user['role'] ?? 'admin';
 	if ($role === 'supplier') {
-		header('Location: src/supplier-pages/supplier-dashboard.php');
+		header('Location: /src/supplier-pages/supplier-dashboard.php');
 		exit;
 	}
-	header('Location: src/admin-pages/dashboard.php');
+	header('Location: /src/admin-pages/dashboard.php');
 	exit;
 }
 
-header('Location: src/login.php');
+header('Location: /src/login.php');
 exit;
 
 ?>

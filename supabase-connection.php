@@ -15,9 +15,13 @@ function sb_request($method, $path, $body = null, $use_anon = false, $extra_head
 	if (!$base) return ['error' => 'SUPABASE_URL not configured', 'ok' => false];
 	$url = $base . $path;
 	$ch = curl_init($url);
-	$headers = [
-		'Content-Type: application/json',
-	];
+	// Respect caller-provided Content-Type in $extra_headers; otherwise default to JSON
+	$hasContentType = false;
+	foreach ($extra_headers as $h) {
+		if (stripos($h, 'content-type:') === 0) { $hasContentType = true; break; }
+	}
+	$headers = [];
+	if (! $hasContentType) $headers[] = 'Content-Type: application/json';
 	$key = get_supabase_key($use_anon);
 	if (!$key && !$use_anon) {
 		return ['error' => 'SUPABASE_KEY (service role) not configured on server', 'ok' => false];
@@ -29,7 +33,13 @@ function sb_request($method, $path, $body = null, $use_anon = false, $extra_head
 	foreach ($extra_headers as $h) $headers[] = $h;
 	curl_setopt($ch, CURLOPT_CUSTOMREQUEST, strtoupper($method));
 	if ($body !== null) {
-		curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
+		// If caller provided a raw string body, use it as-is (useful for form-encoded requests)
+		if (is_string($body)) {
+			$postBody = $body;
+		} else {
+			$postBody = json_encode($body);
+		}
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $postBody);
 	}
 	// Request headers + body together so we can parse response headers
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -64,14 +74,13 @@ function sb_request($method, $path, $body = null, $use_anon = false, $extra_head
 
 // Sign in using Supabase Auth (email + password)
 function sb_sign_in($email, $password) {
-	$path = '/auth/v1/token';
-	$body = [
-		'grant_type' => 'password',
+	// Supabase token endpoint accepts grant_type in query for JSON requests.
+	$path = '/auth/v1/token?grant_type=password';
+	$data = [
 		'email' => $email,
 		'password' => $password,
 	];
-	// use anon key for auth
-	return sb_request('POST', $path, $body, true);
+	return sb_request('POST', $path, $data, true);
 }
 
 // Get profile (assumes a `profiles` table keyed by id = user id)

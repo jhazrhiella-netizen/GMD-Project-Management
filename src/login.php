@@ -22,10 +22,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			if (function_exists('generate_csrf_token')) generate_csrf_token();
 			$role = $res['user']['role'] ?? 'admin';
 			if ($role === 'supplier') {
-				header('Location: src/supplier-pages/supplier-dashboard.php');
+				header('Location: /src/supplier-pages/supplier-dashboard.php');
 				exit;
 			}
-			header('Location: src/admin-pages/dashboard.php');
+			header('Location: /src/admin-pages/dashboard.php');
 			exit;
 		}
 	}
@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 	<meta charset="utf-8">
 	<title>GMD - Login</title>
-	<link rel="stylesheet" href="src/css/styles.css">
+	<link rel="stylesheet" href="/src/css/styles.css">
 </head>
 <body class="login-page">
 	<div class="login-card">

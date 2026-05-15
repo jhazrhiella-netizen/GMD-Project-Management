@@ -1,5 +1,7 @@
 <?php
 // Basic app bootstrap and helpers
+// Load local .env for development if present (safe: does not override existing env)
+require_once __DIR__ . '/load_env.php';
 // Toggle debug output via APP_ENV=development or DEBUG=1
 $debug = (getenv('APP_ENV') === 'development' || getenv('DEBUG') === '1');
 if ($debug) {
@@ -75,7 +77,7 @@ if (!function_exists('require_login')) {
 				echo json_encode(['error' => 'Unauthorized']);
 				exit;
 			}
-			header('Location: src/login.php');
+			header('Location: /src/login.php');
 			exit;
 		}
 	}

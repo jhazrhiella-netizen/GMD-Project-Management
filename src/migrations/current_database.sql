@@ -1,0 +1,179 @@
+-- Enable uuid generation (needed for gen_random_uuid if ever used)
+create extension if not exists "pgcrypto";
+
+-- ======================================
+-- Profiles (simplified: no address/company fields)
+-- `id` must match Auth user id (uuid). No default so operator must use auth.user id.
+-- role: 'admin' or 'supplier'
+-- ======================================
+create table if not exists profiles (
+  id uuid primary key,
+  full_name text,
+  email text unique not null,
+  role text not null default 'admin',
+  phone text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint profiles_role_check check (role in ('admin','supplier'))
+);
+
+-- ======================================
+-- Projects
+-- ======================================
+create table if not exists projects (
+  id serial primary key,
+  name text not null,
+  client text,
+  client_address text,
+  client_contact text,
+  client_email text,
+  budget numeric(14,2),
+  start_date date,
+  end_date date,
+  lead_time int,
+  description text,
+  progress numeric(5,2) default 0, -- percent 0..100
+  status text default 'planned',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- ======================================
+-- Materials
+-- ======================================
+create table if not exists materials (
+  id serial primary key,
+  name text not null unique,
+  quantity numeric default 0,
+  unit_price numeric(14,2) default 0,
+  extra jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- ======================================
+-- Employees
+-- ======================================
+create table if not exists employees (
+  id serial primary key,
+  name text not null,
+  position text,
+  email text,
+  phone text,
+  meta jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- ======================================
+-- Material requests (supplier-facing)
+-- ======================================
+create table if not exists material_requests (
+  id serial primary key,
+  project_id int references projects(id) on delete set null,
+  material text not null,
+  quantity numeric not null default 1,
+  supplier_id uuid references profiles(id) on delete set null,
+  requested_by uuid references profiles(id) on delete set null,
+  price numeric(14,2),
+  status text default 'requested', -- requested, quoted, accepted, rejected
+  note text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- ======================================
+-- Messages / Notifications
+-- ======================================
+create table if not exists messages (
+  id serial primary key,
+  sender_id uuid references profiles(id) on delete set null,
+  recipient_id uuid references profiles(id) on delete set null,
+  content text,
+  status text default 'unread',
+  is_read boolean default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- ======================================
+-- Views / Indexes
+-- ======================================
+create or replace view suppliers as
+  select id, full_name, email, phone, created_at from profiles where role = 'supplier';
+
+create index if not exists idx_profiles_email on profiles(email);
+create index if not exists idx_projects_name on projects(lower(name));
+create index if not exists idx_materials_name on materials(lower(name));
+create index if not exists idx_material_requests_supplier on material_requests(supplier_id);
+create index if not exists idx_material_requests_project on material_requests(project_id);
+create index if not exists idx_messages_recipient on messages(recipient_id);
+create index if not exists idx_messages_sender on messages(sender_id);
+
+-- ======================================
+-- Trigger helper: maintain updated_at
+-- ======================================
+create or replace function set_updated_at()
+returns trigger language plpgsql as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+-- Attach triggers for updated_at
+-- Attach triggers for updated_at (drop existing then create)
+drop trigger if exists trg_profiles_updated_at on profiles;
+create trigger trg_profiles_updated_at
+  before update on profiles
+  for each row execute function set_updated_at();
+
+drop trigger if exists trg_projects_updated_at on projects;
+create trigger trg_projects_updated_at
+  before update on projects
+  for each row execute function set_updated_at();
+
+drop trigger if exists trg_materials_updated_at on materials;
+create trigger trg_materials_updated_at
+  before update on materials
+  for each row execute function set_updated_at();
+
+drop trigger if exists trg_employees_updated_at on employees;
+create trigger trg_employees_updated_at
+  before update on employees
+  for each row execute function set_updated_at();
+
+drop trigger if exists trg_material_requests_updated_at on material_requests;
+create trigger trg_material_requests_updated_at
+  before update on material_requests
+  for each row execute function set_updated_at();
+
+drop trigger if exists trg_messages_updated_at on messages;
+create trigger trg_messages_updated_at
+  before update on messages
+  for each row execute function set_updated_at();
+
+-- ======================================
+-- Helper: create or update profile row for an existing Auth user id
+-- Usage: SELECT create_profile_for_auth_user('<auth-uuid>','Full Name','admin','email@example.com');
+-- ======================================
+create or replace function create_profile_for_auth_user(p_id uuid, p_full_name text, p_role text default 'admin', p_email text default null)
+returns void language plpgsql as $$
+begin
+  insert into profiles (id, full_name, role, email, created_at, updated_at)
+  values (p_id, p_full_name, p_role, p_email, now(), now())
+  on conflict (id) do update
+    set full_name = coalesce(excluded.full_name, profiles.full_name),
+        role = excluded.role,
+        email = coalesce(excluded.email, profiles.email),
+        updated_at = now();
+end;
+$$;
+
+-- ======================================
+-- Optional: sample insert (commented)
+-- Important: you must supply the actual Auth user UUID from Supabase Auth.
+-- Example (replace UUIDs with real auth.user ids):
+-- SELECT create_profile_for_auth_user('11111111-1111-1111-1111-111111111111', 'Alice Admin', 'admin', 'alice@example.com');
+-- SELECT create_profile_for_auth_user('22222222-2222-2222-2222-222222222222', 'Bob Supplier', 'supplier', 'bob@supplier.com');
+-- ======================================
