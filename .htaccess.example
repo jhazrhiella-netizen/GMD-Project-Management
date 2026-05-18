@@ -1,0 +1,12 @@
+# Protect environment file and common sensitive files
+<Files ".env">
+  Require all denied
+</Files>
+
+# Block access to backup and git files
+<FilesMatch "^(\.git|composer\.json|composer\.lock|README|.*\.sql)$">
+  Require all denied
+</FilesMatch>
+
+# Prevent directory listing
+Options -Indexes

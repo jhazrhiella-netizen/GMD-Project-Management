@@ -1,0 +1,12 @@
+<?php
+// Copy this file to `config.local.php` and fill values. Keep it out of version control.
+return [
+    'SUPABASE_URL' => 'https://your-project.supabase.co',
+    'SUPABASE_KEY' => 'your_service_role_key_here',
+    'SUPABASE_ANON_KEY' => 'your_anon_key_here',
+    'APP_ENV' => 'development',
+    'DEBUG' => '1',
+    'FORCE_SECURE_SESSION' => '0',
+    'SUPABASE_PUBLIC_STORAGE' => '0',
+    'CHECK_ENV_TOKEN' => 'change-this-token'
+];
