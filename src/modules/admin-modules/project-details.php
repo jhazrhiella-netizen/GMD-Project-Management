@@ -17,9 +17,8 @@ if ($id) {
             $client = trim($_POST['client'] ?? '');
             $status = trim($_POST['status'] ?? '');
             $description = trim($_POST['description'] ?? '');
-            $start_date = trim($_POST['start_date'] ?? null);
-            $end_date = trim($_POST['end_date'] ?? null);
-            $progress = floatval($_POST['progress'] ?? 0);
+            $start_date = trim($_POST['start_date'] ?? '');
+            $end_date = trim($_POST['end_date'] ?? '');
 
             if ($name === '') {
                 $flash = 'Project name is required.';
@@ -30,8 +29,7 @@ if ($id) {
                     'status' => $status,
                     'description' => $description,
                     'start_date' => $start_date ?: null,
-                    'end_date' => $end_date ?: null,
-                    'progress' => $progress
+                    'end_date' => $end_date ?: null
                 ];
                 sb_update_table('projects', $data, 'id=eq.' . urlencode($id));
                 $flash = 'Project updated.';
@@ -46,24 +44,14 @@ if ($id) {
     $project = null;
 }
 ?>
-<!doctype html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Project Details</title>
-    <link rel="stylesheet" href="/src/css/styles.css">
-    <style>
+<?php /* Module fragment: Project Details - intended to be included in project-view.php */ ?>
+<style>
     .progress-bar { background:#eee; border-radius:4px; overflow:hidden; height:14px; }
     .progress-fill { height:100%; background:#4caf50; text-align:center; color:#fff; font-size:12px }
-    </style>
-</head>
-<body>
-    <?php include __DIR__ . '/../../admin-pages/header.php'; ?>
-    <div class="app-container">
-        <?php include __DIR__ . '/../../admin-pages/sidebar.php'; ?>
-        <div class="app-main">
-            <h2>Project Details</h2>
-            <div class="card">
+</style>
+<div class="module-content">
+    <h2>Project Details</h2>
+    <div class="card">
                 <?php if (!empty($flash)): ?>
                     <div style="padding:8px;background:#f6ffef;border:1px solid #cfc;margin-bottom:8px"><?php echo htmlspecialchars($flash); ?></div>
                 <?php endif; ?>
@@ -84,8 +72,6 @@ if ($id) {
                                     <input type="date" name="start_date" value="<?php echo htmlspecialchars($project['start_date'] ?? ''); ?>" />
                                     <label>End</label>
                                     <input type="date" name="end_date" value="<?php echo htmlspecialchars($project['end_date'] ?? ''); ?>" />
-                                    <label>Progress %</label>
-                                    <input type="number" name="progress" value="<?php echo htmlspecialchars($project['progress'] ?? 0); ?>" style="width:100px" />
                                 </div>
                                 <input type="hidden" name="action" value="save" />
                                 <input type="hidden" name="_csrf" value="<?php echo htmlspecialchars(generate_csrf_token()); ?>" />
@@ -100,7 +86,6 @@ if ($id) {
                         <p><strong>Client:</strong> <?php echo htmlspecialchars($project['client'] ?? ''); ?></p>
                         <p><strong>Status:</strong> <?php echo htmlspecialchars($project['status'] ?? ''); ?></p>
                         <p><strong>Start:</strong> <?php echo htmlspecialchars($project['start_date'] ?? ''); ?> &nbsp; <strong>End:</strong> <?php echo htmlspecialchars($project['end_date'] ?? ''); ?></p>
-                        <p><strong>Description:</strong><br><?php echo nl2br(htmlspecialchars($project['description'] ?? '')); ?></p>
                         <p><strong>Progress:</strong></p>
                         <?php $prog = floatval($project['progress'] ?? 0); if ($prog < 0) $prog = 0; if ($prog > 100) $prog = 100; ?>
                         <div class="progress-bar"><div class="progress-fill" style="width:<?php echo $prog; ?>%"><?php echo $prog; ?>%</div></div>
@@ -112,4 +97,3 @@ if ($id) {
     </div>
 </body>
 </html>
-This module will be used in the project-view.php. It now supports editing basic project fields, displays start/end dates and a progress bar, and includes server-side validation for the project name.

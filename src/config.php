@@ -2,6 +2,8 @@
 // Basic app bootstrap and helpers
 // Load local .env for development if present (safe: does not override existing env)
 require_once __DIR__ . '/load_env.php';
+// Ensure server uses Philippines timezone for display
+date_default_timezone_set('Asia/Manila');
 // Toggle debug output via APP_ENV=development or DEBUG=1
 $debug = (getenv('APP_ENV') === 'development' || getenv('DEBUG') === '1');
 if ($debug) {
@@ -16,6 +18,11 @@ if ($debug) {
 
 // Session hardening - configure cookie params before starting session
 $forceSecure = (getenv('FORCE_SECURE_SESSION') === '1') || (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+// In local development (localhost / 127.0.0.1) do not force secure-only cookies
+$host = $_SERVER['HTTP_HOST'] ?? '';
+if (stripos($host, 'localhost') !== false || strpos($host, '127.0.0.1') === 0) {
+	$forceSecure = false;
+}
 ini_set('session.use_strict_mode', '1');
 session_set_cookie_params([
 	'lifetime' => 0,

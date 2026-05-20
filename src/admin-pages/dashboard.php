@@ -32,4 +32,3 @@ $user = get_current_user();
     </div>
 </body>
 </html>
-This will show everything that is needed for the dashboard page. It will show the latest posts, comments, and some stats about the site. They will be shown through each modules that the modules/admin-dashboard-modules have. So every additional module that is added to the modules/admin-dashboard-modules will be shown on the dashboard page. This will make it easy for developers to add new modules to the dashboard page without having to modify the core code of the dashboard page. This is basically just a container for the modules that are connected to the dashboard page.

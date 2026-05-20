@@ -20,9 +20,6 @@ require_login();
 			<h2>Projects</h2>
 			<div class="flex-row">
 				<div class="flex-1">
-					<?php include __DIR__ . '/../modules/admin-modules/add-project.php'; ?>
-				</div>
-				<div class="flex-1">
 					<?php include __DIR__ . '/../modules/admin-modules/project-list.php'; ?>
 				</div>
 			</div>

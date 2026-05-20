@@ -22,7 +22,7 @@ if (!$proj_id) {
 		<div class="app-main">
 			<?php include __DIR__ . '/../modules/admin-modules/project-details.php'; ?>
 			<?php include __DIR__ . '/../modules/admin-modules/project-progess.php'; ?>
-			<?php include __DIR__ . '/../modules/admin-modules/request-materials.php'; ?>
+			<?php include __DIR__ . '/../modules/admin-modules/materials-list.php'; ?>
 		</div>
 	</div>
 </body>

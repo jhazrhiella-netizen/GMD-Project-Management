@@ -15,26 +15,39 @@ if (isset($msgsRes['body']) && is_array($msgsRes['body'])) {
     }
 }
 ?>
-<div class="app-header" style="background:#2b6cb0;color:#fff">
+<style>
+    .app-header{background:#1e40af;color:#fff;position:fixed;top:0;left:0;right:0;height:56px;z-index:1500}
+    .header-inner{max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;padding:8px 12px;height:100%}
+    .brand{display:flex;align-items:center;gap:12px;font-weight:700;font-size:16px}
+    .btn-reset{background:transparent;border:0;color:inherit;font:inherit;cursor:pointer}
+    .header-actions{display:flex;align-items:center;gap:12px}
+    .badge{background:#ef4444;color:#fff;border-radius:12px;padding:2px 8px;font-size:12px;margin-left:6px}
+    .messages-dropdown{display:none;position:absolute;right:0;top:36px;background:#fff;color:#000;border:1px solid #e6e6e6;width:320px;box-shadow:0 10px 30px rgba(2,6,23,0.12);z-index:2000;border-radius:6px;overflow:hidden}
+    .messages-dropdown .title{padding:10px 12px;border-bottom:1px solid #f2f2f2;font-weight:600}
+    .messages-dropdown .list{max-height:260px;overflow:auto}
+    .messages-dropdown .item{padding:10px;border-bottom:1px solid #f8f8f8}
+    @media (max-width:900px){ .header-inner{padding:8px} }
+</style>
+<div class="app-header">
     <meta name="csrf-token" content="<?php echo htmlspecialchars(generate_csrf_token()); ?>" />
-    <div style="max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;padding:8px 0">
-        <div style="display:flex;align-items:center;gap:12px">
-            <button id="sidebarToggle" style="background:transparent;border:0;color:#fff;font-size:20px">☰</button>
-            <div style="font-weight:600">Supplier Portal</div>
+    <div class="header-inner">
+        <div class="brand">
+            <button id="sidebarToggle" class="btn-reset" aria-label="Toggle sidebar">☰</button>
+            <div>Supplier Portal</div>
         </div>
-        <div style="display:flex;align-items:center;gap:12px">
+        <div class="header-actions">
             <div id="clock" style="font-family:monospace"></div>
             <div><?php echo htmlspecialchars($user['email'] ?? ''); ?></div>
             <form method="get" action="/src/modules/supplier-modules/supplier-lockscreen.php" style="display:inline">
                 <input type="hidden" name="action" value="lock" />
-                <button type="submit" style="background:transparent;border:1px solid rgba(255,255,255,0.2);color:#fff;padding:6px 8px;border-radius:4px">Lock</button>
+                <button type="submit" class="btn-reset" style="padding:6px 8px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff">Lock</button>
             </form>
             <div style="position:relative">
-                <button id="messagesToggle" style="background:transparent;border:0;color:#fff;position:relative">Messages<?php if($unreadCount>0) echo ' (' . intval($unreadCount) . ')'; ?></button>
-                <div id="messagesDropdown" style="display:none;position:absolute;right:0;top:28px;background:#fff;color:#000;border:1px solid #ddd;width:320px;box-shadow:0 6px 18px rgba(0,0,0,0.08);z-index:2000">
-                    <div style="padding:8px;border-bottom:1px solid #eee;font-weight:600">Messages</div>
-                    <div id="messagesList" style="max-height:260px;overflow:auto"></div>
-                    <div style="padding:8px;border-top:1px solid #eee;text-align:center"><a href="/src/supplier-pages/supplier-messages.php">View all</a></div>
+                <button id="messagesToggle" class="btn-reset" aria-haspopup="true" aria-expanded="false">Messages<?php if($unreadCount>0) echo ' <span class="badge">' . intval($unreadCount) . '</span>'; ?></button>
+                <div id="messagesDropdown" class="messages-dropdown" aria-hidden="true">
+                    <div class="title">Messages</div>
+                    <div id="messagesList" class="list"><div style="padding:12px;color:#666">Loading…</div></div>
+                    <div style="padding:10px;border-top:1px solid #f2f2f2;text-align:center"><a href="/src/supplier-pages/supplier-messages.php">View all</a></div>
                 </div>
             </div>
             <a href="/src/logout.php" style="color:#fff;text-decoration:none">Logout</a>
@@ -44,7 +57,7 @@ if (isset($msgsRes['body']) && is_array($msgsRes['body'])) {
 <script>
 function updateClock(){
     var d=new Date();
-    document.getElementById('clock').textContent = d.toLocaleString();
+    var el = document.getElementById('clock'); if(el) el.textContent = d.toLocaleString();
 }
 updateClock(); setInterval(updateClock,1000);
 var sidebarOpen = false;
@@ -56,8 +69,8 @@ function openSidebar(){
         overlayEl = document.createElement('div');
         overlayEl.id = 'sidebarOverlay';
         overlayEl.style.position = 'fixed';
-        overlayEl.style.left = 0; overlayEl.style.top = 56 + 'px'; overlayEl.style.right = 0; overlayEl.style.bottom = 0;
-        overlayEl.style.background = 'rgba(0,0,0,0.2)';
+        overlayEl.style.left = 0; overlayEl.style.top = '56px'; overlayEl.style.right = 0; overlayEl.style.bottom = 0;
+        overlayEl.style.background = 'rgba(0,0,0,0.22)';
         overlayEl.addEventListener('click', closeSidebar);
         document.body.appendChild(overlayEl);
     } else {
@@ -69,17 +82,15 @@ function closeSidebar(){
     sidebarOpen = false;
     if (overlayEl) overlayEl.style.display = 'none';
 }
-document.getElementById('sidebarToggle').addEventListener('click', function(e){
-    if (sidebarOpen) closeSidebar(); else openSidebar();
-});
+var sidebarBtn = document.getElementById('sidebarToggle');
+if(sidebarBtn) sidebarBtn.addEventListener('click', function(e){ if (sidebarOpen) closeSidebar(); else openSidebar(); });
 // hide sidebar when clicking internal links
 document.addEventListener('click', function(e){
     var a = e.target.closest && e.target.closest('a');
-    if (a && a.getAttribute('href') && a.getAttribute('href').indexOf('/src/')===0){
-        closeSidebar();
-    }
+    if (a && a.getAttribute('href') && a.getAttribute('href').indexOf('/src/')===0){ closeSidebar(); }
 });
-// Messages dropdown behavior: fetch previews and unread count
+
+// Messages dropdown: fetch previews and unread count
 var messagesToggle = document.getElementById('messagesToggle');
 var messagesDropdown = document.getElementById('messagesDropdown');
 var messagesList = document.getElementById('messagesList');
@@ -89,7 +100,7 @@ function fetchMessagesPreview(){
         if (!data || data.length===0) { messagesList.innerHTML = '<div style="padding:12px;color:#666">No messages</div>'; return; }
         data.forEach(function(m){
             var el = document.createElement('div');
-            el.style.padding='8px'; el.style.borderBottom='1px solid #f2f2f2';
+            el.className = 'item';
             el.innerHTML = '<div style="font-size:13px;color:#222">'+(m.from||'')+'</div><div style="font-size:12px;color:#555">'+(m.content||'')+'</div><div style="font-size:11px;color:#999;margin-top:6px">'+(m.created_at||'')+'</div>';
             messagesList.appendChild(el);
         });
@@ -98,18 +109,20 @@ function fetchMessagesPreview(){
 function refreshUnreadCount(){
     fetch('/src/api/unread_count.php').then(r=>r.json()).then(j=>{
         if (j && typeof j.count !== 'undefined'){
-            messagesToggle.textContent = 'Messages' + (j.count>0?(' ('+j.count+')'):'');
+            var badge = messagesToggle.querySelector('.badge');
+            if (j.count>0){ if(!badge){ var sp = document.createElement('span'); sp.className='badge'; sp.textContent=j.count; messagesToggle.appendChild(sp);} else badge.textContent=j.count; }
+            else if(badge) badge.remove();
         }
     }).catch(()=>{});
 }
-messagesToggle.addEventListener('click', function(e){
-    e.stopPropagation();
-    if (messagesDropdown.style.display === 'block') { messagesDropdown.style.display='none'; }
-    else { messagesDropdown.style.display='block'; fetchMessagesPreview(); }
-});
-document.addEventListener('click', function(e){ if (!e.target.closest || !e.target.closest('#messagesDropdown')) messagesDropdown.style.display='none'; });
-// refresh count periodically
+if(messagesToggle){
+    messagesToggle.addEventListener('click', function(e){
+        e.stopPropagation();
+        if (messagesDropdown.style.display === 'block') { messagesDropdown.style.display='none'; messagesToggle.setAttribute('aria-expanded','false'); }
+        else { messagesDropdown.style.display='block'; messagesToggle.setAttribute('aria-expanded','true'); fetchMessagesPreview(); }
+    });
+}
+document.addEventListener('click', function(e){ if (!e.target.closest || !e.target.closest('#messagesDropdown')) { if(messagesDropdown) messagesDropdown.style.display='none'; if(messagesToggle) messagesToggle.setAttribute('aria-expanded','false'); } });
 setInterval(refreshUnreadCount, 30000);
 refreshUnreadCount();
 </script>
-This will be the header used for the supplier pages. This will include the name of the supplier. Just like the admin header, this will have a date and time display and a lockscreen button to lock the screen if the supplier needs to step away from their computer. 

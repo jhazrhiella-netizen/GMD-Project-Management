@@ -114,7 +114,9 @@ function sb_delete_table($table, $filter) {
 
 // Upload a file to Supabase Storage. Returns public URL on success or ['error'=>...] on failure.
 function sb_upload_file($bucket, $object_path, $local_file_path, $content_type = null) {
-	$url = rtrim(SUPABASE_URL, '/') . '/storage/v1/object/' . rawurlencode($bucket) . '/' . ltrim($object_path, '/');
+	// encode each path segment of the object path to preserve slashes
+	$encodedObject = implode('/', array_map('rawurlencode', explode('/', ltrim($object_path, '/'))));
+	$url = rtrim(SUPABASE_URL, '/') . '/storage/v1/object/' . rawurlencode($bucket) . '/' . $encodedObject;
 	if (!file_exists($local_file_path)) return ['error' => 'local file not found'];
 	// Basic server-side validation
 	$maxBytes = 10 * 1024 * 1024; // 10 MB
@@ -136,7 +138,9 @@ function sb_upload_file($bucket, $object_path, $local_file_path, $content_type =
 
 	$ch = curl_init($url);
 	$headers = [];
+	// ensure Content-Type is always set for binary uploads
 	if ($content_type) $headers[] = 'Content-Type: ' . $content_type;
+	else $headers[] = 'Content-Type: application/octet-stream';
 	$key = get_supabase_key(false);
 	if (!$key) return ['error' => 'SUPABASE_KEY not configured', 'ok' => false];
 	$headers[] = 'apikey: ' . $key;
@@ -160,11 +164,53 @@ function sb_upload_file($bucket, $object_path, $local_file_path, $content_type =
 		$public_storage = (getenv('SUPABASE_PUBLIC_STORAGE') === '1');
 		if ($public_storage) {
 			$public = rtrim(SUPABASE_URL, '/') . '/storage/v1/object/public/' . rawurlencode($bucket) . '/' . ltrim($object_path, '/');
-			return ['url' => $public, 'status' => $info['http_code'], 'raw' => $resp];
+			return ['ok' => true, 'url' => $public, 'status' => $info['http_code'], 'raw' => $resp];
 		}
-		return ['object_path' => $object_path, 'bucket' => $bucket, 'status' => $info['http_code'], 'raw' => $resp];
+		return ['ok' => true, 'object_path' => $object_path, 'bucket' => $bucket, 'status' => $info['http_code'], 'raw' => $resp];
 	}
-	return ['status' => $info['http_code'], 'raw' => $resp];
+	// try to surface any JSON error body for debugging
+	$decoded = json_decode($resp, true);
+	if (is_array($decoded) && isset($decoded['message'])) {
+		error_log('sb_upload_file error body: ' . json_encode($decoded));
+		return ['status' => $info['http_code'], 'error' => $decoded['message'], 'raw' => $resp];
+	}
+	// If Supabase responds with 404 "Bucket not found", attempt to create the bucket (server-side) and retry once.
+	if (($info['http_code'] ?? 0) === 404 && is_array($decoded) && isset($decoded['message']) && stripos($decoded['message'], 'bucket') !== false) {
+		error_log('sb_upload_file detected missing bucket "' . $bucket . '". Attempting to create it.');
+		// create bucket via storage API
+		$createPath = '/storage/v1/bucket';
+		$createBody = ['name' => $bucket, 'public' => (getenv('SUPABASE_PUBLIC_STORAGE') === '1')];
+		$createRes = sb_request('POST', $createPath, $createBody, false);
+		if (isset($createRes['ok']) && $createRes['ok']) {
+			// retry original upload once
+			$ch2 = curl_init($url);
+			$headers2 = $headers;
+			curl_setopt($ch2, CURLOPT_CUSTOMREQUEST, 'PUT');
+			curl_setopt($ch2, CURLOPT_POSTFIELDS, $data);
+			curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+			curl_setopt($ch2, CURLOPT_HTTPHEADER, $headers2);
+			$resp2 = curl_exec($ch2);
+			$info2 = curl_getinfo($ch2);
+			if ($resp2 === false) {
+				$err2 = curl_error($ch2);
+				curl_close($ch2);
+				return ['error' => $err2];
+			}
+			curl_close($ch2);
+			if (($info2['http_code'] ?? 0) >= 200 && ($info2['http_code'] ?? 0) < 300) {
+				if (getenv('SUPABASE_PUBLIC_STORAGE') === '1') {
+					$public = rtrim(SUPABASE_URL, '/') . '/storage/v1/object/public/' . rawurlencode($bucket) . '/' . ltrim($object_path, '/');
+					return ['ok' => true, 'url' => $public, 'status' => $info2['http_code'], 'raw' => $resp2];
+				}
+				return ['ok' => true, 'object_path' => $object_path, 'bucket' => $bucket, 'status' => $info2['http_code'], 'raw' => $resp2];
+			}
+			// fall through to return the original response below
+		} else {
+			error_log('sb_upload_file: failed to create bucket: ' . json_encode($createRes));
+		}
+	}
+	error_log('sb_upload_file unexpected response (' . ($info['http_code'] ?? 'unknown') . '): ' . substr($resp,0,1000));
+	return ['status' => $info['http_code'] ?? 0, 'raw' => $resp];
 }
 
 // Generate a signed URL for a stored object (server-only). Returns ['url'=>...] on success.
@@ -173,13 +219,26 @@ function sb_get_signed_url($bucket, $object_path, $expires = 3600) {
 	if (!$base) return ['error' => 'SUPABASE_URL not configured', 'ok' => false];
 	$path = '/storage/v1/object/sign/' . rawurlencode($bucket) . '/' . ltrim($object_path, '/') . '?expires=' . intval($expires);
 	$res = sb_request('POST', $path, null, false);
-	if (isset($res['ok']) && $res['ok'] && isset($res['body']['signedURL'])) {
-		return ['url' => $res['body']['signedURL']];
+	if (!isset($res['ok']) || !$res['ok']) {
+		error_log('sb_get_signed_url failed: ' . json_encode($res));
+		return ['error' => 'failed to generate signed url', 'raw' => $res];
 	}
-	// some responses may return the url in raw body
-	if (isset($res['body']) && is_string($res['body']) && strlen($res['body'])>0) {
-		return ['url' => trim($res['body'])];
+	$body = $res['body'] ?? null;
+	if (is_array($body)) {
+		// try multiple common field names
+		foreach (['signedURL','signed_url','signedUrl','signedurl','signed'] as $k) {
+			if (isset($body[$k]) && is_string($body[$k]) && strlen($body[$k])>0) return ['url' => $body[$k]];
+		}
+		// sometimes the API may return the signed url as a top-level string inside body
+		foreach ($body as $v) {
+			if (is_string($v) && strpos($v, 'http') === 0) return ['url' => $v];
+		}
 	}
+	if (is_string($res['raw'] ?? null) && strlen($res['raw'])>0) {
+		$rawTrim = trim($res['raw']);
+		if (strpos($rawTrim, 'http') === 0) return ['url' => $rawTrim];
+	}
+	error_log('sb_get_signed_url: unexpected response body: ' . json_encode($res));
 	return ['error' => 'failed to generate signed url', 'raw' => $res];
 }
 
